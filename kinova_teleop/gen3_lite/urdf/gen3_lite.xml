@@ -1,0 +1,80 @@
+<mujoco model="gen3_lite">
+  <compiler angle="radian" meshdir="meshes" balanceinertia="true"/>
+  
+  <option gravity="0 0 -9.81"/>
+
+  <default>
+    <geom type="mesh" rgba="1 1 1 1" solimp="0.95 0.99 0.001" solref="0.004 1"/>
+    <joint damping="0.5" armature="0.01" frictionloss="0.1"/>
+  </default>
+
+  <asset>
+    <mesh name="BASE" file="base_link.STL"/>
+    <mesh name="SHOULDER" file="shoulder_link.STL"/>
+    <mesh name="ARM" file="arm_link.STL"/>
+    <mesh name="FOREARM" file="forearm_link.STL"/>
+    <mesh name="LOWER_WRIST" file="lower_wrist_link.STL"/>
+    <mesh name="UPPER_WRIST" file="upper_wrist_link.STL"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" diffuse="0.8 0.8 0.8"/>
+    <geom name="floor" type="plane" size="2 2 0.1" rgba="0.5 0.5 0.5 1"/>
+
+    <body name="BASE" pos="0 0 0">
+        <!-- 아래 카메라 추가해줌 -->
+      <camera mode="fixed" name="robotview1" pos="0.0 -2.0 0.5" quat="0.7071 0.7071 0 0"/>
+      <camera mode="fixed" name="robotview2" pos="0.0 2.0 0.5" quat="0 0 0.7071 0.7071"/>
+      <inertial pos="0.00244 0.00015 0.08616" mass="1.146" fullinertia="0.00335854 0.003311 0.00077158 3.9e-07 0.00010989 1.91e-06"/>
+      <geom mesh="BASE"/>
+      
+      <body name="SHOULDER" pos="0 0 0.12825">
+        <inertial pos="0.00002 0.02213 0.09937" mass="0.959" fullinertia="0.00165947 0.00140355 0.00089493 2e-08 3.6e-07 0.00034927"/>
+        <joint name="J0" pos="0 0 0" axis="0 0 1" range="-2.76 2.76"/>
+        <geom mesh="SHOULDER"/>
+
+        <body name="ARM" pos="0 -0.03 0.115" euler="1.5708 0 0">
+          <inertial pos="0.02998 0.21154 0.04530" mass="1.177" fullinertia="0.01149277 0.00102851 0.01133492 1e-06 1.6e-07 0.00140765"/>
+          <joint name="J1" pos="0 0 0" axis="0 0 1" range="-2.76 2.76"/>
+          <geom mesh="ARM"/>
+
+          <body name="FOREARM" pos="0 0.28 0" euler="-3.1416 0 0">
+            <inertial pos="0.03015 0.09502 0.00735" mass="0.597" fullinertia="0.00163256 0.00029798 0.00169091 7.11e-06 1.54e-06 9.587e-05"/>
+            <joint name="J2" pos="0 0 0" axis="0 0 1" range="-2.76 2.76"/>
+            <geom mesh="FOREARM"/>
+
+            <body name="LOWER_WRIST" pos="0 -0.14 0.02" euler="1.5708 0 0">
+              <inertial pos="0.00575 0.01000 0.08719" mass="0.526" fullinertia="0.00069098 0.00078519 0.00034115 2.4e-07 0.00016483 7.4e-07"/>
+              <joint name="J3" pos="0 0 0" axis="0 0 1" range="-2.67 2.67"/>
+              <geom mesh="LOWER_WRIST"/>
+
+              <body name="UPPER_WRIST" pos="0.0285 0 0.105" euler="0 1.5708 0">
+                <inertial pos="0.08056 0.00980 0.01872" mass="0.580" fullinertia="0.00021268 0.00106371 0.00108465 5.21e-06 2.91e-06 1.1e-07"/>
+                <joint name="J4" pos="0 0 0" axis="0 0 1" range="-2.67 2.67"/>
+                <geom mesh="UPPER_WRIST"/>
+
+                <body name="END_EFFECTOR" pos="-0.105 0 0.0285" euler="0 -1.5708 0">
+                   <inertial pos="0 0 0" mass="0.01" fullinertia="0.0001 0.0001 0.0001 0 0 0"/>
+                   <joint name="J5" pos="0 0 0" axis="0 0 1" range="-2.67 2.67"/>
+                   
+                   <body name="DUMMY" pos="0 0 0.130">
+                      <site name="end_effector_site" pos="0 0 0" size="0.01" rgba="1 0 0 1"/>
+                   </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <position name="j0_pos" joint="J0" kp="50"/>
+    <position name="j1_pos" joint="J1" kp="50"/>
+    <position name="j2_pos" joint="J2" kp="50"/>
+    <position name="j3_pos" joint="J3" kp="20"/>
+    <position name="j4_pos" joint="J4" kp="20"/>
+    <position name="j5_pos" joint="J5" kp="20"/>
+  </actuator>
+</mujoco>
