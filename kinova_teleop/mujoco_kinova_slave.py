@@ -20,7 +20,7 @@ def deg2rad(x):
 class MujocoKinovaSlave(Node):
     def __init__(self):
         super().__init__('Mujoco_Kinova_Slave')
-        self.mujoco_kinova_run = self.create_subscription(Float32MultiArray, 'dynamixel_joint_raw', self.subscribe_topic, 10)
+        self.mujoco_kinova_run = self.create_subscription(Float32MultiArray, 'dynamixel_pose', self.subscribe_topic, 10)
 
         self.m_mujoco = mujoco.MjModel.from_xml_path(xml_path)
         self.d_mujoco = mujoco.MjData(self.m_mujoco)

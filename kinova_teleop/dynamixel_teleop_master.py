@@ -11,7 +11,7 @@ def deg2rad(x):
 class DynamixelVal(Node):
     def __init__(self):
         super().__init__('dynamixel_teleop_master')
-        self.publisher_ = self.create_publisher(Float32MultiArray, 'dynamixel_joint_raw', 10)
+        self.publisher_ = self.create_publisher(Float32MultiArray, 'dynamixel_pose', 10)
         timer_period = 0.01
         self.timer = self.create_timer(timer_period, self.read_motor_position)
 
