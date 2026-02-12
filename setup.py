@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'dynamixel_teleop_master = kinova_teleop.dynamixel_teleop_master:main',
+            'kinova_run = kinova_teleop.kinova_run:main',
         ],
     },
 )
