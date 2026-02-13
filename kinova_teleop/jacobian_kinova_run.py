@@ -61,9 +61,11 @@ class JacobianKinovaRun(Node):
         self.timer = self.create_timer(0.01, self.control_loop)
     
     def subscribe_topic(self, msg):
-        pose = np.array(msg.data).reshape(4, 4)
+        pose = np.array(msg.data[:16]).reshape(4, 4)
 
         self.x_d = pose
+
+        self.grip_val = msg.data[16]
         
     def control_loop(self):
 
@@ -81,10 +83,12 @@ class JacobianKinovaRun(Node):
             rot_mat_d = R.from_matrix(rot_mat_x_d)
             
             feedback = self.base_cyclic.RefreshFeedback()
+            self.q_c = [feedback.actuators[i].position for i in range(6)]
+            
             x_l_c = feedback.base.tool_pose_x
             y_l_c = feedback.base.tool_pose_y
             z_l_c = feedback.base.tool_pose_z
-            position_c = [x_l_c, y_l_c, z_l_c]
+            position_c = np.array([x_l_c, y_l_c, z_l_c])
 
             x_a_c = feedback.base.tool_pose_theta_x
             y_a_c = feedback.base.tool_pose_theta_y
@@ -92,24 +96,48 @@ class JacobianKinovaRun(Node):
 
             euler_angles_c = [x_a_c, y_a_c, z_a_c]
             rotation_c = R.from_euler('xyz', euler_angles_c, degrees=True)
-            # rot_mat_c = rotation_c.as_matrix()
-
-            # rot_mat_c_inv = linalg.inv(rot_mat_c)
-
-            rot_mat_err = rot_mat_d * rotation_c.inv()
-            rot_e = rot_mat_err.as_rotvec()
 
             x_l_d = self.x_d[0, 3]
             y_l_d = self.x_d[1, 3]
             z_l_d = self.x_d[2, 3]
-            position_d = [x_l_d, y_l_d, z_l_d]
+            position_d = np.array([x_l_d, y_l_d, z_l_d])
 
             error_position = position_d - position_c
             delta_x_1d[:3] = np.transpose(kp * error_position)
 
-            command = Base_pb2.TwistCommand()
-            command.reference_frame = Base_pb2.CARTESIAN_REFERENCE_FRAME_BASE
-            command.duration = 0
+            quat_d = rot_mat_d.as_quat()
+            quat_c = rotation_c.as_quat()
+
+            if np.dot(quat_d, quat_c) < 0:
+                quat_c = -quat_c
+
+            error_orientation = quat_c[3] * quat_d[:3] - quat_d[3] * quat_c[:3] - np.cross(quat_d[:3], quat_c[:3])
+            delta_x_1d[3:6] = np.transpose(ko * error_orientation)
+
+            delta_x_1d_trans = np.transpose(delta_x_1d)
+            jacobian_matrix = self.get_jacobian(np.radians(self.q_c)+self.theta_kinova, self.d_kinova, self.a_kinova, self.alpha_kinova)
+
+            U, sigma, Vt = np.linalg.svd(jacobian_matrix)
+
+            if sigma[-1] >= epsilon:
+                damping_factor = 0
+            else:
+                damping_factor = damping_factor_max * np.sqrt(1 - (sigma[-1] / epsilon)**2)
+
+            delta_q = np.transpose(jacobian_matrix) @ np.linalg.inv(jacobian_matrix @ np.transpose(jacobian_matrix) + (damping_factor**2) * np.eye(6)) @ delta_x_1d_trans
+
+            delta_q_deg = np.degrees(delta_q)
+            delta_q_deg = np.clip(delta_q_deg, -30, 30)
+
+            joint_speeds = Base_pb2.JointSpeeds()
+
+            for i in range(6):
+                joint_speed = joint_speeds.joint_speeds.add()
+                joint_speed.joint_identifier = i
+                joint_speed.value = delta_q_deg[i]
+                joint_speed.duration = 0
+
+            self.base.SendJointSpeedsCommand(joint_speeds)
 
             
         
@@ -205,6 +233,15 @@ class JacobianKinovaRun(Node):
         ])
         
         return Jacobian_matrix
+
+    def set_gripper(self, value):
+        # raw val 2048이 클로즈, 1200이 오픈
+        gripper_command = Base_pb2.GripperCommand()
+        gripper_command.mode = Base_pb2.GRIPPER_POSITION
+        finger = gripper_command.gripper.finger.add()
+
+        finger.finger_identifier = 1
+        self.base.SendGripperCommand(gripper_command)
 
 
 def main():

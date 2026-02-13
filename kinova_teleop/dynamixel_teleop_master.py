@@ -18,7 +18,7 @@ class DynamixelVal(Node):
         self.DEVICENAME = '/dev/ttyUSB0'
         self.BAUDRATE = 57600
 
-        self.motor_ids = [1, 2, 3, 4, 5, 6]
+        self.motor_ids = [1, 2, 3, 4, 5, 6, 7]
 
         self.ADDR_TORQUE_ENABLE = 64
         self.ADDR_GOAL_POSITION = 116
@@ -64,11 +64,11 @@ class DynamixelVal(Node):
     def read_motor_position(self):
         msg = Float32MultiArray()
 
-        q = [0, 0, 0, 0, 0, 0]
+        q = np.zeros(7)
 
         
         self.BulkRead.txRxPacket()
-        for i in range(6):
+        for i in range(7):
             q[i] = self.BulkRead.getData(self.motor_ids[i], self.ADDR_PRESENT_POSITION, self.data_length_4byte)
 
         dir = [1, 1, -1, 1, 1, 1]
@@ -82,9 +82,10 @@ class DynamixelVal(Node):
         T06[:3, 3] = T06[:3, 3] * 0.7
 
         msg.data = T06.flatten().tolist()
+        msg.data.append(q[6])
         self.publisher_.publish(msg)
         # self.get_logger().info(str(msg))
-        print(T06)
+        # print(T06)
 
     def forward_kinematic(self, theta, d, a, alpha):
         T = np.eye(4)
